@@ -26,5 +26,8 @@
     <ClInclude Include="MapAlgebraFunc.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="MapAlgebraTemp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
