@@ -8,7 +8,7 @@ bool BmpReverse(const char* SrcBmpName, const char* DestBmpName);
 bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* DestBmpName);
 
 //3 focal function
-bool BmpFocal(const char* SrcBmpName, const char* DestBmpName);
+bool BmpFocal(const char* SrcBmpName, CFocalTmp *pFocalTmp);
 
 //4 format changer
 int Bmp256to32b(const char* SourceFileName, const char* IdxFileName);

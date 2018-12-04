@@ -166,9 +166,104 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 	return true;
 }
 
-bool BmpFocal(const char * SrcBmpName, const char * DestBmpName)
+bool BmpFocal(const char * SrcBmpName, CFocalTmp *pFocalTmp)
 {
-	return false;
+
+	// 1 read bmp info, prepare storage
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	unsigned char ClrTab[256 * 4];
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	fread(ClrTab, 1024, 1, file1);
+
+	unsigned MtxWidth, MtxHeight, BmpWidth;
+	BmpWidth = BmpInfoHeader.biWidth;
+	MtxWidth = (BmpWidth + 3) / 4 * 4;
+	MtxHeight = BmpInfoHeader.biHeight;
+
+	//read matrix
+	unsigned char * LineBuf = new unsigned char[MtxWidth];//read data line buffer
+	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		MtxBuf[i] = new unsigned char[MtxWidth];
+		fread(LineBuf, sizeof(unsigned char), MtxWidth, file1);
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			MtxBuf[i][j] = LineBuf[j]; 
+		}
+	}
+
+	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		NewMtxBuf[i] = new unsigned char[MtxWidth];
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//calculate
+	for (int y = 0; y < MtxHeight; y++)
+	{
+		for (int x = 0; x < MtxWidth; x++)
+		{
+			if (MtxBuf[y][x] == 0xff) continue;
+			unsigned char tmp = 0;
+			for (int k = 0; k < pFocalTmp->GetSize(); k++)
+			{
+				char OffX = pFocalTmp->GetOffX(k);
+				char OffY = pFocalTmp->GetOffY(k);
+				float tmpPower = pFocalTmp->GetPower(k);
+				int CurrX = x + OffX;
+				int CurrY = y + OffY;
+				if ((CurrX < 0) || (CurrX > MtxWidth - 1)) continue;
+				if ((CurrY < 0) || (CurrY > MtxHeight - 1)) continue;
+				unsigned char MtxValue = MtxBuf[CurrY][CurrX];
+				tmp += MtxValue*tmpPower;
+			}
+		    NewMtxBuf[y][x] = tmp / pFocalTmp->GetSize();
+		}
+	}
+
+
+	//write file
+	FILE *file2 = fopen("Averaged.bmp", "wb");
+	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
+	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
+	fwrite(ClrTab, 1024, 1, file2);
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		fwrite(NewMtxBuf[i], 1, MtxWidth, file2);
+	}
+	fclose(file1);
+	fclose(file2);
+
+	//free storage
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] MtxBuf[i];
+		MtxBuf[i] = NULL;
+	}
+	delete[] MtxBuf;
+	MtxBuf = NULL;
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] NewMtxBuf[i];
+		NewMtxBuf[i] = NULL;
+	}
+	delete[] NewMtxBuf;
+	NewMtxBuf = NULL;
+
+	return true;
 }
 
 int Bmp256to32b(const char * SourceFileName, const char * IdxFileName)
@@ -352,7 +447,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 	{
 		for (int x = 0; x < MtxWidth; x++)
 		{
-			float tmpMin = DisMtx[y][x] + 0;
+			float tmpMin = DisMtx[y][x];
 			if (fabs(tmpMin) < MinFloat) continue;
 			for (int k = 0; k < pDisTmp->GetSize() / 2; k++)
 			{

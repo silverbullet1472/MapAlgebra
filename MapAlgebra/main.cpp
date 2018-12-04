@@ -7,5 +7,9 @@ int main() {
 	Bmp256to32b("test256.bmp", "to32bed.bmp");
 	CManHattanTmp *manHattanTmp = new CManHattanTmp;
 	DisTransform("disSource.bmp", manHattanTmp);
+	CAverageTmp *averageTmp = new CAverageTmp;
+	BmpFocal("disSource.bmp", averageTmp);
+	delete manHattanTmp;
+	delete averageTmp;
 	return 0;
 }
