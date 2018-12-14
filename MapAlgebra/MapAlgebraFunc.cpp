@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <windows.h>
 #include <assert.h>
+#include <vector>
 #define MaxFloat 9999999999.999999
 #define MinFloat 0.000001
-
 
 bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 {
@@ -23,21 +23,21 @@ bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
 	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
 	fread(ClrTab, 1024, 1, file1);
-	unsigned MtxWidth, MtxHeight, BmpWidth;
-	BmpWidth = BmpInfoHeader.biWidth;
-	MtxWidth = (BmpWidth + 3) / 4 * 4;
+	unsigned BmpWidth, MtxHeight, MtxWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
 	// Windows规定一个扫描行所占的字节数必须是4 的倍数 ( 即以 long 为单位 ), 不足的以 0 填充，具体数据举例：
 	// 也就是说，写入图片一行的像素信息的时候，每一行的字节数都必须是4的倍数，不足的在后面补0，然后才又开始写入下一行的像素信息
 	// 在本函数中，每个像素用 1 byte = 8 bit来表示颜色信息
 	MtxHeight = BmpInfoHeader.biHeight;
 
 	//read matrix
-	unsigned char * LineBuf = new unsigned char[MtxWidth];//read data line buffer
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
 	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		MtxBuf[i] = new unsigned char[MtxWidth];
-		for (int j = 0; j < MtxWidth; j++)
+		MtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < BmpWidth; j++)
 		{
 			MtxBuf[i][j] = 0xFF; // 0xFF = 1111 1111 = 255
 		}
@@ -46,8 +46,8 @@ bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 	//reverse color
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		fread(LineBuf, sizeof(unsigned char), MtxWidth, file1);
-		for (int j = 0; j < MtxWidth; j++)
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+		for (int j = 0; j < BmpWidth; j++)
 		{
 			if (LineBuf[j] == 0xFF) continue;
 			MtxBuf[i][j] = 255 - LineBuf[j];
@@ -66,7 +66,7 @@ bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 	fwrite(ClrTab, 1024, 1, file2);
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		fwrite(MtxBuf[i], 1, MtxWidth, file2);
+		fwrite(MtxBuf[i], 1, BmpWidth, file2);
 	}
 	fclose(file1);
 	fclose(file2);
@@ -104,22 +104,22 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
 	fread(ClrTab, 1024, 1, file2);
 
-	unsigned MtxWidth, MtxHeight, BmpWidth;
-	BmpWidth = BmpInfoHeader.biWidth;
-	MtxWidth = (BmpWidth + 3) / 4 * 4;
+	unsigned BmpWidth, MtxHeight, MtxWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
 	// Windows规定一个扫描行所占的字节数必须是4 的倍数 ( 即以 long 为单位 ), 不足的以 0 填充，具体数据举例：
 	// 也就是说，写入图片一行的像素信息的时候，每一行的字节数都必须是4的倍数，不足的在后面补0，然后才又开始写入下一行的像素信息
 	// 在本函数中，每个像素用 1 byte = 8 bit来表示颜色信息
 	MtxHeight = BmpInfoHeader.biHeight;
 
 	//read matrix
-	unsigned char * LineBuf1 = new unsigned char[MtxWidth];//read data line buffer
-	unsigned char * LineBuf2 = new unsigned char[MtxWidth];//read data line buffer
+	unsigned char * LineBuf1 = new unsigned char[BmpWidth];//read data line buffer
+	unsigned char * LineBuf2 = new unsigned char[BmpWidth];//read data line buffer
 	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		MtxBuf[i] = new unsigned char[MtxWidth];
-		for (int j = 0; j < MtxWidth; j++)
+		MtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < BmpWidth; j++)
 		{
 			MtxBuf[i][j] = 0xFF; // 0xFF = 1111 1111 = 255
 		}
@@ -128,9 +128,9 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 	//reverse color
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		fread(LineBuf1, sizeof(unsigned char), MtxWidth, file1);
-		fread(LineBuf2, sizeof(unsigned char), MtxWidth, file2);
-		for (int j = 0; j < MtxWidth; j++)
+		fread(LineBuf1, sizeof(unsigned char), BmpWidth, file1);
+		fread(LineBuf2, sizeof(unsigned char), BmpWidth, file2);
+		for (int j = 0; j < BmpWidth; j++)
 		{
 			if (LineBuf1[j] == 0xFF && LineBuf2[j] == 0xFF) continue;
 			MtxBuf[i][j] = LineBuf1[j] + LineBuf2[j];
@@ -147,7 +147,7 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 	fwrite(ClrTab, 1024, 1, file3);
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		fwrite(MtxBuf[i], 1, MtxWidth, file3);
+		fwrite(MtxBuf[i], 1, BmpWidth, file3);
 	}
 
 	fclose(file3);
@@ -166,9 +166,8 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 	return true;
 }
 
-bool BmpFocal(const char * SrcBmpName, CFocalTmp *pFocalTmp)
+bool BmpFocal(const char * SrcBmpName, CTmp *pFocalTmp, const char* DestBmpName)
 {
-
 	// 1 read bmp info, prepare storage
 	FILE *file1 = fopen(SrcBmpName, "rb");
 
@@ -180,29 +179,29 @@ bool BmpFocal(const char * SrcBmpName, CFocalTmp *pFocalTmp)
 	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
 	fread(ClrTab, 1024, 1, file1);
 
-	unsigned MtxWidth, MtxHeight, BmpWidth;
-	BmpWidth = BmpInfoHeader.biWidth;
-	MtxWidth = (BmpWidth + 3) / 4 * 4;
+	unsigned BmpWidth, MtxHeight, MtxWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
 	MtxHeight = BmpInfoHeader.biHeight;
 
 	//read matrix
-	unsigned char * LineBuf = new unsigned char[MtxWidth];//read data line buffer
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
 	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		MtxBuf[i] = new unsigned char[MtxWidth];
-		fread(LineBuf, sizeof(unsigned char), MtxWidth, file1);
-		for (int j = 0; j < MtxWidth; j++)
+		MtxBuf[i] = new unsigned char[BmpWidth];
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+		for (int j = 0; j < BmpWidth; j++)
 		{
-			MtxBuf[i][j] = LineBuf[j]; 
+			MtxBuf[i][j] = LineBuf[j];
 		}
 	}
 
 	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		NewMtxBuf[i] = new unsigned char[MtxWidth];
-		for (int j = 0; j < MtxWidth; j++)
+		NewMtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < BmpWidth; j++)
 		{
 			NewMtxBuf[i][j] = 0xff;
 		}
@@ -211,7 +210,7 @@ bool BmpFocal(const char * SrcBmpName, CFocalTmp *pFocalTmp)
 	//calculate
 	for (int y = 0; y < MtxHeight; y++)
 	{
-		for (int x = 0; x < MtxWidth; x++)
+		for (int x = 0; x < BmpWidth; x++)
 		{
 			if (MtxBuf[y][x] == 0xff) continue;
 			unsigned char tmp = 0;
@@ -222,24 +221,23 @@ bool BmpFocal(const char * SrcBmpName, CFocalTmp *pFocalTmp)
 				float tmpPower = pFocalTmp->GetPower(k);
 				int CurrX = x + OffX;
 				int CurrY = y + OffY;
-				if ((CurrX < 0) || (CurrX > MtxWidth - 1)) continue;
+				if ((CurrX < 0) || (CurrX > BmpWidth - 1)) continue;
 				if ((CurrY < 0) || (CurrY > MtxHeight - 1)) continue;
 				unsigned char MtxValue = MtxBuf[CurrY][CurrX];
 				tmp += MtxValue*tmpPower;
 			}
-		    NewMtxBuf[y][x] = tmp / pFocalTmp->GetSize();
+			NewMtxBuf[y][x] = tmp / pFocalTmp->GetSize();
 		}
 	}
 
-
 	//write file
-	FILE *file2 = fopen("Averaged.bmp", "wb");
+	FILE *file2 = fopen(DestBmpName, "wb");
 	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
 	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
 	fwrite(ClrTab, 1024, 1, file2);
 	for (int i = 0; i < MtxHeight; i++)
 	{
-		fwrite(NewMtxBuf[i], 1, MtxWidth, file2);
+		fwrite(NewMtxBuf[i], 1, BmpWidth, file2);
 	}
 	fclose(file1);
 	fclose(file2);
@@ -398,9 +396,8 @@ int Bmp256to32b(const char * SourceFileName, const char * IdxFileName)
 	return 1; // 返回成功代码1
 }
 
-
-bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
-
+bool DisTransform(const char* SrcBmpName, CTmp *pDisTmp, const char* DestDistribution, const char* DestDistance, unsigned char Maxcolor)
+{
 	// 1 read bmp info, prepare storage
 	FILE *file1 = fopen(SrcBmpName, "rb");
 
@@ -428,7 +425,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 		DisMtx[i] = new float[MtxWidth];
 		for (int j = 0; j < MtxWidth; j++)
 		{
-			if (LocMtx[i][j] == 0xFF)
+			if (LocMtx[i][j] == Maxcolor)
 			{
 				DisMtx[i][j] = MaxFloat;
 			}
@@ -453,7 +450,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 			{
 				char OffX = pDisTmp->GetOffX(k);
 				char OffY = pDisTmp->GetOffY(k);
-				float tempDis = pDisTmp->GetDis(k);
+				float tempDis = pDisTmp->GetPower(k);
 				int CurrX = x + OffX;
 				int CurrY = y + OffY;
 				if ((CurrX < 0) || (CurrX > MtxWidth - 1)) continue;
@@ -483,7 +480,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 			{
 				char OffX = pDisTmp->GetOffX(k);
 				char OffY = pDisTmp->GetOffY(k);
-				float tempDis = pDisTmp->GetDis(k);
+				float tempDis = pDisTmp->GetPower(k);
 				int CurrX = x + OffX;
 				int CurrY = y + OffY;
 				if ((CurrX < 0) || (CurrX > MtxWidth - 1)) continue;
@@ -523,7 +520,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 	IdxFileInfo.biClrImportant = 0;
 
 	// 5.1 write distance file
-	FILE * bmpWrite1 = fopen("Distance.bmp", "wb");
+	FILE * bmpWrite1 = fopen(DestDistance, "wb");
 	fwrite(&IdxFileHead, sizeof(BITMAPFILEHEADER), 1, bmpWrite1);
 	fwrite(&IdxFileInfo, sizeof(BITMAPINFOHEADER), 1, bmpWrite1);
 	for (int y = 0; y < MtxHeight; y++)
@@ -533,7 +530,7 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 	fclose(bmpWrite1);
 
 	// 5.2 write distribution file 8位unsigned char型
-	FILE * bmpWrite2 = fopen("Distribution.bmp", "wb");
+	FILE * bmpWrite2 = fopen(DestDistribution, "wb");
 	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, bmpWrite2);
 	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, bmpWrite2);
 	fwrite(ClrTab, 1024, 1, bmpWrite2);
@@ -551,5 +548,559 @@ bool DisTransform(const char* SrcBmpName, CDisTmp *pDisTmp) {
 	}
 	delete[]DisMtx;
 	delete[]LocMtx;
+	return true;
+}
+
+bool GenerateBoundary(const char * SrcBmpName, const char* DestBmpName)
+{
+	//open source file
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	unsigned char ClrTab[256 * 4];// color table : r + b + g + alpha
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	fread(ClrTab, 1024, 1, file1);
+	unsigned BmpWidth, MtxHeight, MtxWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
+	MtxHeight = BmpInfoHeader.biHeight;
+
+	//read matrix
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
+	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		MtxBuf[i] = new unsigned char[MtxWidth];
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			MtxBuf[i][j] = LineBuf[j];
+		}
+	}
+
+	//initialize
+	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		NewMtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//calculate
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			/*if (i == 0 || i == MtxHeight - 1)  NewMtxBuf[i][j] = 150;
+			if (j == 0 || j == BmpWidth - 1)   NewMtxBuf[i][j] = 150; */
+			if ((i == 0) || (j == 0) || (i == MtxHeight - 1) || (j == MtxWidth - 1)) continue;
+			if ((MtxBuf[i - 1][j] != MtxBuf[i + 1][j]) || (MtxBuf[i][j + 1] != MtxBuf[i][j - 1]))
+			{
+				NewMtxBuf[i][j] = 0;
+			}
+			else NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//write file
+	FILE *file2 = fopen(DestBmpName, "wb");
+	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
+	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
+	fwrite(ClrTab, 1024, 1, file2);
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		fwrite(NewMtxBuf[i], 1, BmpWidth, file2);
+	}
+	fclose(file1);
+	fclose(file2);
+
+	//free storage
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] MtxBuf[i];
+		MtxBuf[i] = NULL;
+	}
+	delete[] MtxBuf;
+	MtxBuf = NULL;
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] NewMtxBuf[i];
+		NewMtxBuf[i] = NULL;
+	}
+	delete[] NewMtxBuf;
+	NewMtxBuf = NULL;
+
+	return true;
+}
+
+bool GenerateBuffer(const char * SrcBmpName, float radius, const char* DestBmpName)
+{
+	//open source file
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	unsigned MtxWidth, MtxHeight, BmpWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	MtxHeight = BmpInfoHeader.biHeight;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
+	//read matrix
+	float * LineBuf = new float[MtxWidth];//read data line buffer
+	float ** MtxBuf = new float *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		MtxBuf[i] = new float[MtxWidth];
+		fread(LineBuf, sizeof(float), MtxWidth, file1);
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			MtxBuf[i][j] = LineBuf[j];
+		}
+	}
+
+	//initialize
+	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		NewMtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//calculate
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			if (MtxBuf[i][j] < radius) NewMtxBuf[i][j] = 0;
+			else NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//write file
+	FILE *file2 = fopen("distribution.bmp", "rb");
+	BITMAPFILEHEADER IdxFileHeader;
+	BITMAPINFOHEADER IdxInfoHeader;
+	unsigned char ClrTab[256 * 4];// color table : r + b + g + alpha
+	fread(&IdxFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
+	fread(&IdxInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
+	fread(ClrTab, 1024, 1, file2);
+
+	FILE *file3 = fopen(DestBmpName, "wb");
+	fwrite(&IdxFileHeader, sizeof(BITMAPFILEHEADER), 1, file3);
+	fwrite(&IdxInfoHeader, sizeof(BITMAPINFOHEADER), 1, file3);
+	fwrite(ClrTab, 1024, 1, file3);
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		fwrite(NewMtxBuf[i], 1, BmpWidth, file3);
+	}
+	fclose(file1);
+	fclose(file2);
+	fclose(file3);
+	//free storage
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] MtxBuf[i];
+		MtxBuf[i] = NULL;
+	}
+	delete[] MtxBuf;
+	MtxBuf = NULL;
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] NewMtxBuf[i];
+		NewMtxBuf[i] = NULL;
+	}
+	delete[] NewMtxBuf;
+	NewMtxBuf = NULL;
+
+	return true;
+}
+
+bool AdhesionTransform(const char * SrcBmpName, float outRadius, float inRadius)
+{
+	//粘连变换：先生成外距填补凹陷，再生成内距，保凸减凹
+
+	//外距
+	CManHattanTmp *manHattanTmp = new CManHattanTmp;
+	DisTransform(SrcBmpName, manHattanTmp, "adDistribution1.bmp", "adDis1.bmp", 0xFF);
+	GenerateBuffer("adDis1.bmp", outRadius, "adBuffered1.bmp");
+
+	//内距
+	DisTransform("adBuffered1.bmp", manHattanTmp, "adDistribution2.bmp", "adDis2.bmp", 0);
+	GenerateBuffer("adDis2.bmp", inRadius, "adhesionTransformed.bmp");
+	delete manHattanTmp;
+	return true;
+}
+
+bool AxisTransform(const char * SrcBmpName, const char * DestBmpName)
+{
+	CManHattanTmp *manHattanTmp = new CManHattanTmp;
+	DisTransform(SrcBmpName, manHattanTmp, "axisDistribution1.bmp", "adDis1.bmp", 0);
+	GenerateBoundary("axisDistribution1.bmp", DestBmpName);
+	delete manHattanTmp;
+	return true;
+}
+
+bool DelauneyTransform(const char * SrcBmpName, const char * DestBmpName)
+{
+	COctagonTmp *tmp = new COctagonTmp;
+	GetPtCoors(SrcBmpName, "pts.txt");
+	DisTransform("delanueyTest.bmp", tmp, "delauneyDistribution1.bmp", "delauneyDistance1.bmp", 0xff);
+	GeneratePointPairs("delauneyDistribution1.bmp", "pairs.txt", "delauneyBoundray1.bmp");
+	LinkPts("delanueyTest.bmp", "pts.txt", "pairs.txt", DestBmpName);
+	return true;
+}
+
+bool GetPtCoors(const char * SrcBmpName, const char * outPtTxt)
+{
+	//open source file
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	unsigned char ClrTab[256 * 4];// color table : r + b + g + alpha
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	fread(ClrTab, 1024, 1, file1);
+	unsigned MtxWidth, MtxHeight, BmpWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	MtxHeight = BmpInfoHeader.biHeight;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
+
+	//read matrix
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
+	FILE *fp = fopen(outPtTxt, "w");
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		int ptX = -1, ptY = -1;
+		int color = -1;
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			if (LineBuf[j] == 0xFF) continue;
+			ptX = i;
+			ptY = j;
+			color = LineBuf[j];
+			fprintf(fp, "%d\t%d\t%d\n", color, ptX, ptY);
+		}
+
+	}
+	fclose(fp);
+	fclose(file1);
+
+	//free storage
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	return true;
+}
+
+bool GeneratePointPairs(const char * SrcBmpName, const char * outPairsTxt, const char* DestBoundaryBmp)
+{
+	//open source file
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	unsigned char ClrTab[256 * 4];// color table : r + b + g + alpha
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	fread(ClrTab, 1024, 1, file1);
+	unsigned MtxWidth, MtxHeight, BmpWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
+	MtxHeight = BmpInfoHeader.biHeight;
+
+	//read matrix
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
+	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		MtxBuf[i] = new unsigned char[MtxWidth];
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			MtxBuf[i][j] = LineBuf[j];
+		}
+	}
+
+	//initialize
+	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		NewMtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//calculate
+	std::vector<PtPair> *pairs = new std::vector<PtPair>;
+	int id1=-1, id2=-1;
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			if ((i == 0) || (j == 0) || (i == MtxHeight - 1) || (j == MtxWidth - 1)) continue;
+			if ((MtxBuf[i - 1][j] != MtxBuf[i + 1][j]) || (MtxBuf[i][j + 1] != MtxBuf[i][j - 1]))
+			{
+				NewMtxBuf[i][j] = 0;
+				if (MtxBuf[i - 1][j] > MtxBuf[i + 1][j]) 
+				{
+					id1 = MtxBuf[i - 1][j]; id2 = MtxBuf[i + 1][j];
+					addPair(pairs,id1,id2);
+				} 
+				if (MtxBuf[i + 1][j] > MtxBuf[i - 1][j])
+				{
+					id1 = MtxBuf[i + 1][j]; id2 = MtxBuf[i - 1][j];
+					addPair(pairs, id1, id2);
+				}
+				if (MtxBuf[i][j + 1] > MtxBuf[i][j - 1])
+				{
+					id1 = MtxBuf[i][j + 1]; id2 = MtxBuf[i][j - 1];
+					addPair(pairs, id1, id2);
+				}
+				if (MtxBuf[i][j - 1] > MtxBuf[i][j + 1])
+				{
+					id1 = MtxBuf[i][j - 1]; id2 = MtxBuf[i][j + 1];
+					addPair(pairs, id1, id2);
+				}
+			}
+			else NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	//write file
+	FILE *fp = fopen(outPairsTxt, "w");
+	for (int i = 0; i < pairs->size(); i++)
+	{
+		fprintf(fp,"%d\t%d\n",pairs->at(i).sId, pairs->at(i).eId);
+	}
+	fclose(fp);
+
+	FILE *file2 = fopen(DestBoundaryBmp, "wb");
+	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
+	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
+	fwrite(ClrTab, 1024, 1, file2);
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		fwrite(NewMtxBuf[i], 1, BmpWidth, file2);
+	}
+	fclose(file1);
+	fclose(file2);
+
+	//free storage
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] MtxBuf[i];
+		MtxBuf[i] = NULL;
+	}
+	delete[] MtxBuf;
+	MtxBuf = NULL;
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] NewMtxBuf[i];
+		NewMtxBuf[i] = NULL;
+	}
+	delete[] NewMtxBuf;
+	NewMtxBuf = NULL;
+
+	pairs->clear();
+	pairs->shrink_to_fit();
+	delete pairs;
+
+	return true;
+}
+
+bool addPair(std::vector<PtPair>* pairs, int s, int e)
+{
+	if (s == 255 || s == 0 || e == 255 || e == 0) return false;
+	for (int i = 0; i < pairs->size(); i++)
+	{
+		if (pairs->at(i).sId == s)
+		{
+			if (pairs->at(i).eId == e) return true;
+			else continue;
+		}
+	}
+	PtPair tmp(s, e);
+	pairs->push_back(tmp);
+	return true;
+}
+
+bool LinkPts(const char * SrcBmpName, const char * outPtTxt, const char * outPairsTxt, const char* DestBmp)
+{
+	//open source file
+	FILE *file1 = fopen(SrcBmpName, "rb");
+
+	//load bmp file
+	BITMAPFILEHEADER BmpFileHeader;
+	BITMAPINFOHEADER BmpInfoHeader;
+	unsigned char ClrTab[256 * 4];// color table : r + b + g + alpha
+	fread(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file1);
+	fread(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file1);
+	fread(ClrTab, 1024, 1, file1);
+	unsigned BmpWidth, MtxHeight, MtxWidth;
+	MtxWidth = BmpInfoHeader.biWidth;
+	BmpWidth = (MtxWidth + 3) / 4 * 4;
+	MtxHeight = BmpInfoHeader.biHeight;
+
+	//read matrix
+	unsigned char * LineBuf = new unsigned char[BmpWidth];//read data line buffer
+	unsigned char ** MtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		MtxBuf[i] = new unsigned char[MtxWidth];
+		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			MtxBuf[i][j] = LineBuf[j];
+		}
+	}
+
+	//read txt
+	std::vector<PtPair> *pairs = new std::vector<PtPair>;
+	std::vector<Pt> *pts = new std::vector<Pt>;
+
+	FILE *ptFp = fopen(outPtTxt, "rb");
+	int color=-1, x=-1, y=-1;
+	while (!feof(ptFp))
+	{
+		fscanf(ptFp, "%d %d %d", &color, &x, &y);
+		Pt tmp(color, x, y);
+		pts->push_back(tmp);
+	}
+	fclose(ptFp);
+
+	FILE *pairFp = fopen(outPairsTxt, "rb");
+	int s=-1,e=-1;
+	while (!feof(pairFp))
+	{
+		fscanf(pairFp, "%d %d", &s, &e);
+		PtPair tmp(s,e);
+		pairs->push_back(tmp);
+	}
+	fclose(pairFp);
+
+	//wirte matrix
+	unsigned char ** NewMtxBuf = new unsigned char *[MtxHeight];
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		NewMtxBuf[i] = new unsigned char[BmpWidth];
+		for (int j = 0; j < MtxWidth; j++)
+		{
+			NewMtxBuf[i][j] = 0xff;
+		}
+	}
+
+	for (int i = 0; i < pairs->size(); i++) 
+	{
+		ddaLine(pts, NewMtxBuf, pairs->at(i).sId, pairs->at(i).eId);
+	}
+
+	//write file
+	FILE *file2 = fopen(DestBmp, "wb");
+	fwrite(&BmpFileHeader, sizeof(BITMAPFILEHEADER), 1, file2);
+	fwrite(&BmpInfoHeader, sizeof(BITMAPINFOHEADER), 1, file2);
+	fwrite(ClrTab, 1024, 1, file2);
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		fwrite(NewMtxBuf[i], 1, BmpWidth, file2);
+	}
+	fclose(file1);
+	fclose(file2);
+
+	//free storage
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] MtxBuf[i];
+		MtxBuf[i] = NULL;
+	}
+	delete[] MtxBuf;
+	MtxBuf = NULL;
+	delete[] LineBuf;
+	LineBuf = NULL;
+
+	for (int i = 0; i < MtxHeight; i++)
+	{
+		delete[] NewMtxBuf[i];
+		NewMtxBuf[i] = NULL;
+	}
+	delete[] NewMtxBuf;
+	NewMtxBuf = NULL;
+
+	pairs->clear();
+	pairs->shrink_to_fit();
+	delete pairs;
+
+	pts->clear();
+	pts->shrink_to_fit();
+	delete pts;
+
+	return true;
+}
+
+bool ddaLine(std::vector<Pt> *pts, unsigned char ** NewMtxBuf, int sId, int eId)
+{
+	int xa=-1, ya=-1, xb=-1, yb=-1;
+	for (int i = 0; i < pts->size(); i++)
+	{
+		if (pts->at(i).color == sId)
+		{
+			xa = pts->at(i).x;
+			ya = pts->at(i).y;
+		}
+		if (pts->at(i).color == eId)
+		{
+			xb = pts->at(i).x;
+			yb = pts->at(i).y;
+		}
+	}
+	int dx = xb - xa;                            
+	int dy = yb - ya;                             
+	int n;
+	float xinc, yinc, x, y;
+	if (abs(dx) > abs(dy))                         
+	{
+		n = abs(dx);
+	}
+	else
+	{
+		n = abs(dy);
+	}
+	xinc = (float)dx/n;         
+	yinc = (float)dy/n;         
+	x = (float) xa; y = (float) ya;
+	NewMtxBuf[xa][ya] = 0;
+	for(int k = 1; k <= n; k++)
+	{
+		x += xinc;                          
+		y += yinc;  
+		NewMtxBuf[(int)x][(int)y] = 0;
+	}
+	NewMtxBuf[xb][yb] = 0;
 	return true;
 }

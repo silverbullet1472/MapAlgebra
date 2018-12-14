@@ -2,20 +2,19 @@
 #include <math.h>
 
 //root class for dis template
-class CDisTmp
+class CTmp
 {
 public:
 	virtual char GetOffX(unsigned i) = 0;
 	virtual char GetOffY(unsigned i) = 0;
-	virtual float GetDis(unsigned i) = 0;
+	virtual float GetPower(unsigned i) = 0;
 	virtual unsigned GetSize() = 0;
 };
 
 static char            ManHattanTemOffX[13] = { 0, -1, 0, 1,  -2,-1, 0, 1, 2,  -1,0,1,0 };
 static char            ManHattanTemOffY[13] = { -2, -1,-1,-1,   0, 0, 0, 0, 0,   1,1,1,2 };
 static unsigned char    ManHattanTemDis[13] = { 2,  2, 1, 2,   2, 1, 0, 1, 2,   2,1,2,2 };
-
-class CManHattanTmp : public CDisTmp
+class CManHattanTmp : public CTmp
 {
 private:
 	char *m_OffX;
@@ -31,46 +30,57 @@ public:
 
 	virtual char GetOffX(unsigned i) { return m_OffX[i]; };
 	virtual char GetOffY(unsigned i) { return m_OffY[i]; };
-	virtual float GetDis(unsigned i) { return m_Dis[i]; };
+	virtual float GetPower(unsigned i) { return m_Dis[i]; };
 	virtual unsigned GetSize() { return 13; };
 };
 
-class CEuTmp13 : public CDisTmp
+static char            OctagonTemOffX[37] = { 1,  0,-1, 2,  1,0, -1, -2, 3, 2,  1, 0,-1,-2,-3,-3,-2,-1,0,1,2,3,3,2,1,0,-1,-2,-3,2,1,0,-1,-2,1,0,-1 };
+static char            OctagonTemOffY[37] = { -3, -3,-3,-2, -2, -2, -2, -2, -1, -1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,2,3,3,3 };
+static unsigned char    OctagonTemDis[37] = {3,3,3,3,2,2,2,3,3,2,2,1,2,2,3,3,2,1,0,1,2,3,3,2,2,1,2,2,3,3,2,2,2,3,3,3,3};
+class COctagonTmp : public CTmp
 {
 private:
-	float m_Dis[169];
+	char *m_OffX;
+	char *m_OffY;
+	unsigned char *m_Dis;
 public:
-	CEuTmp13()
+	COctagonTmp()
 	{
-		for (unsigned i = 0; i < 169; i++)
+		m_OffX = OctagonTemOffX;
+		m_OffY = OctagonTemOffY;
+		m_Dis = OctagonTemDis;
+	};
+
+	virtual char GetOffX(unsigned i) { return m_OffX[i]; };
+	virtual char GetOffY(unsigned i) { return m_OffY[i]; };
+	virtual float GetPower(unsigned i) { return m_Dis[i]; };
+	virtual unsigned GetSize() { return 37; };
+};
+
+class CEu5Tmp : public CTmp
+{
+private:
+	float m_DisTmp[25];
+public:
+	CEu5Tmp()
+	{
+		for (unsigned i = 0; i<25; i++)
 		{
 			float x = GetOffX(i);
 			float y = GetOffY(i);
-			m_Dis[i] = sqrt(x*x + y*y);
+			m_DisTmp[i] = sqrt(x*x + y*y);
 		}
 	};
-
-	virtual char GetOffX(unsigned i) { return i % 13 - 6; };
-	virtual char GetOffY(unsigned i) { return i / 13 - 6; };
-	virtual float GetDis(unsigned i) { return m_Dis[i]; };
-	virtual unsigned GetSize() { return 169; };
+	virtual unsigned GetSize() { return 25; };
+	virtual char GetOffX(unsigned i) { return i % 5 - 2; };
+	virtual char GetOffY(unsigned i) { return i / 5 - 2; };
+	virtual float GetPower(unsigned i) { return m_DisTmp[i]; };
 };
 
-
-class CFocalTmp
-{
-public:
-	virtual char GetOffX(unsigned i) = 0;
-	virtual char GetOffY(unsigned i) = 0;
-	virtual float GetPower(unsigned i) = 0;
-	virtual unsigned GetSize() = 0;
-};
-
-static char             AverageTemOffX[9] =  { 1, 0,-1,-1, 0, 1, 1, 0,-1 };
-static char             AverageTemOffY[9] =  {-1,-1,-1, 0, 0, 0, 1, 1, 1 };
+static char             AverageTemOffX[9] = { 1, 0,-1,-1, 0, 1, 1, 0,-1 };
+static char             AverageTemOffY[9] = { -1,-1,-1, 0, 0, 0, 1, 1, 1 };
 static char             AverageTemPower[9] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-
-class CAverageTmp : public CFocalTmp
+class CAverageTmp : public CTmp
 {
 private:
 	char *m_OffX;
@@ -88,4 +98,27 @@ public:
 	virtual char GetOffY(unsigned i) { return m_OffY[i]; };
 	virtual float GetPower(unsigned i) { return m_Power[i]; };
 	virtual unsigned GetSize() { return 9; };
+};
+
+static char             BoundaryTemOffX[5] = { -1, 1, 0,-1, 1 };
+static char             BoundaryTemOffY[5] = { -1, 0, 0, 0, 1 };
+static char             BoundaryTemPower[5] = { -1, 1, 0,-1, 1 };
+class CBoundaryTmp : public CTmp
+{
+private:
+	char *m_OffX;
+	char *m_OffY;
+	char *m_Power;
+public:
+	CBoundaryTmp()
+	{
+		m_OffX = BoundaryTemOffX;
+		m_OffY = BoundaryTemOffY;
+		m_Power = BoundaryTemPower;
+	};
+
+	virtual char GetOffX(unsigned i) { return m_OffX[i]; };
+	virtual char GetOffY(unsigned i) { return m_OffY[i]; };
+	virtual float GetPower(unsigned i) { return m_Power[i]; };
+	virtual unsigned GetSize() { return 5; };
 };
