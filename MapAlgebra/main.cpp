@@ -9,7 +9,7 @@ int main() {
 	//format transform
 	Bmp256to32b("test256.bmp", "to32bed.bmp");
 	//manhattan dis
-	//CManHattanTmp *manHattanTmp = new CManHattanTmp;
+	//CManHattanTmp *tmp = new CManHattanTmp;
 	//CEu5Tmp *tmp = new CEu5Tmp;
 	COctagonTmp *tmp = new COctagonTmp;
 	DisTransform("adTest.bmp", tmp, "distribution.bmp", "distance.bmp", 0xFF);

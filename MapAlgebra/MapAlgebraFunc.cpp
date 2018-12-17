@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <vector>
 #define MaxFloat 9999999999.999999
-#define MinFloat 0.000001
+#define MinFloat 0.0000000001
 
 bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 {
@@ -49,8 +49,8 @@ bool BmpReverse(const char * SrcBmpName, const char * DestBmpName)
 		fread(LineBuf, sizeof(unsigned char), BmpWidth, file1);
 		for (int j = 0; j < BmpWidth; j++)
 		{
-			if (LineBuf[j] == 0xFF) continue;
-			MtxBuf[i][j] = 255 - LineBuf[j];
+			if (LineBuf[j] == 0xFF) continue;// 如果为背景色白色，则跳过
+			MtxBuf[i][j] = 255 - LineBuf[j];// 反色处理
 		}
 	}
 
@@ -132,8 +132,8 @@ bool BmpOverlay(const char* SrcBmpName1, const char* SrcBmpName2, const char* De
 		fread(LineBuf2, sizeof(unsigned char), BmpWidth, file2);
 		for (int j = 0; j < BmpWidth; j++)
 		{
-			if (LineBuf1[j] == 0xFF && LineBuf2[j] == 0xFF) continue;
-			MtxBuf[i][j] = LineBuf1[j] + LineBuf2[j];
+			if (LineBuf1[j] == 0xFF && LineBuf2[j] == 0xFF) continue;// 如果为背景色白色则跳过
+			MtxBuf[i][j] = LineBuf1[j] + LineBuf2[j];// 颜色值相加
 		}
 	}
 	fclose(file1);
@@ -212,21 +212,21 @@ bool BmpFocal(const char * SrcBmpName, CTmp *pFocalTmp, const char* DestBmpName)
 	{
 		for (int x = 0; x < BmpWidth; x++)
 		{
-			if (MtxBuf[y][x] == 0xff) continue;
+			if (MtxBuf[y][x] == 0xff) continue;// 背景色跳过
 			unsigned char tmp = 0;
 			for (int k = 0; k < pFocalTmp->GetSize(); k++)
 			{
-				char OffX = pFocalTmp->GetOffX(k);
-				char OffY = pFocalTmp->GetOffY(k);
-				float tmpPower = pFocalTmp->GetPower(k);
-				int CurrX = x + OffX;
-				int CurrY = y + OffY;
+				char OffX = pFocalTmp->GetOffX(k);// 获得X偏移量
+				char OffY = pFocalTmp->GetOffY(k);// 获得y偏移量
+				float tmpPower = pFocalTmp->GetPower(k);// 获得权重
+				int CurrX = x + OffX;// 得到像素X坐标
+				int CurrY = y + OffY;// 得到像素y坐标
 				if ((CurrX < 0) || (CurrX > BmpWidth - 1)) continue;
 				if ((CurrY < 0) || (CurrY > MtxHeight - 1)) continue;
 				unsigned char MtxValue = MtxBuf[CurrY][CurrX];
 				tmp += MtxValue*tmpPower;
 			}
-			NewMtxBuf[y][x] = tmp / pFocalTmp->GetSize();
+			NewMtxBuf[y][x] = tmp / pFocalTmp->GetSize();// 平均后求得新值
 		}
 	}
 
@@ -422,7 +422,7 @@ bool DisTransform(const char* SrcBmpName, CTmp *pDisTmp, const char* DestDistrib
 	{
 		LocMtx[i] = new unsigned char[Bmp256Width];
 		fread(LocMtx[i], sizeof(unsigned char), Bmp256Width, file1);
-		DisMtx[i] = new float[MtxWidth];
+		DisMtx[i] = new float[Bmp256Width];
 		for (int j = 0; j < MtxWidth; j++)
 		{
 			if (LocMtx[i][j] == Maxcolor)
@@ -430,7 +430,7 @@ bool DisTransform(const char* SrcBmpName, CTmp *pDisTmp, const char* DestDistrib
 				DisMtx[i][j] = MaxFloat;
 			}
 			else
-				DisMtx[i][j] = 0;
+				DisMtx[i][j] = 0.0;
 		}
 	}
 	fclose(file1);
@@ -444,9 +444,9 @@ bool DisTransform(const char* SrcBmpName, CTmp *pDisTmp, const char* DestDistrib
 	{
 		for (int x = 0; x < MtxWidth; x++)
 		{
-			float tmpMin = DisMtx[y][x];
+			float tmpMin = DisMtx[y][x] + 0;
 			if (fabs(tmpMin) < MinFloat) continue;
-			for (int k = 0; k < pDisTmp->GetSize() / 2; k++)
+			for (unsigned k = 0; k < pDisTmp->GetSize() / 2; k++)
 			{
 				char OffX = pDisTmp->GetOffX(k);
 				char OffY = pDisTmp->GetOffY(k);
@@ -469,14 +469,15 @@ bool DisTransform(const char* SrcBmpName, CTmp *pDisTmp, const char* DestDistrib
 		}
 	}
 
-	// 4 transform by traversing temp: up to down, right to left
-	for (int y = MtxHeight - 1; y > 0; y--)
+
+	//// 4 transform by traversing temp: up to down, right to left
+	for (int y = MtxHeight - 1; y >= 0; y--)
 	{
-		for (int x = MtxWidth - 1; x > 0; x--)
+		for (int x = MtxWidth - 1; x >= 0; x--)
 		{
 			float tmpMin = DisMtx[y][x] + 0;
 			if (fabs(tmpMin) < MinFloat) continue;
-			for (int k = pDisTmp->GetSize(); k > pDisTmp->GetSize() / 2; k--)
+			for (unsigned k = pDisTmp->GetSize() - 1; k > pDisTmp->GetSize() / 2; k--)
 			{
 				char OffX = pDisTmp->GetOffX(k);
 				char OffY = pDisTmp->GetOffY(k);
@@ -597,8 +598,6 @@ bool GenerateBoundary(const char * SrcBmpName, const char* DestBmpName)
 	{
 		for (int j = 0; j < MtxWidth; j++)
 		{
-			/*if (i == 0 || i == MtxHeight - 1)  NewMtxBuf[i][j] = 150;
-			if (j == 0 || j == BmpWidth - 1)   NewMtxBuf[i][j] = 150; */
 			if ((i == 0) || (j == 0) || (i == MtxHeight - 1) || (j == MtxWidth - 1)) continue;
 			if ((MtxBuf[i - 1][j] != MtxBuf[i + 1][j]) || (MtxBuf[i][j + 1] != MtxBuf[i][j - 1]))
 			{
@@ -856,7 +855,7 @@ bool GeneratePointPairs(const char * SrcBmpName, const char * outPairsTxt, const
 
 	//calculate
 	std::vector<PtPair> *pairs = new std::vector<PtPair>;
-	int id1=-1, id2=-1;
+	int id1 = -1, id2 = -1;
 	for (int i = 0; i < MtxHeight; i++)
 	{
 		for (int j = 0; j < MtxWidth; j++)
@@ -865,11 +864,11 @@ bool GeneratePointPairs(const char * SrcBmpName, const char * outPairsTxt, const
 			if ((MtxBuf[i - 1][j] != MtxBuf[i + 1][j]) || (MtxBuf[i][j + 1] != MtxBuf[i][j - 1]))
 			{
 				NewMtxBuf[i][j] = 0;
-				if (MtxBuf[i - 1][j] > MtxBuf[i + 1][j]) 
+				if (MtxBuf[i - 1][j] > MtxBuf[i + 1][j])
 				{
 					id1 = MtxBuf[i - 1][j]; id2 = MtxBuf[i + 1][j];
-					addPair(pairs,id1,id2);
-				} 
+					addPair(pairs, id1, id2);
+				}
 				if (MtxBuf[i + 1][j] > MtxBuf[i - 1][j])
 				{
 					id1 = MtxBuf[i + 1][j]; id2 = MtxBuf[i - 1][j];
@@ -894,7 +893,7 @@ bool GeneratePointPairs(const char * SrcBmpName, const char * outPairsTxt, const
 	FILE *fp = fopen(outPairsTxt, "w");
 	for (int i = 0; i < pairs->size(); i++)
 	{
-		fprintf(fp,"%d\t%d\n",pairs->at(i).sId, pairs->at(i).eId);
+		fprintf(fp, "%d\t%d\n", pairs->at(i).sId, pairs->at(i).eId);
 	}
 	fclose(fp);
 
@@ -986,7 +985,7 @@ bool LinkPts(const char * SrcBmpName, const char * outPtTxt, const char * outPai
 	std::vector<Pt> *pts = new std::vector<Pt>;
 
 	FILE *ptFp = fopen(outPtTxt, "rb");
-	int color=-1, x=-1, y=-1;
+	int color = -1, x = -1, y = -1;
 	while (!feof(ptFp))
 	{
 		fscanf(ptFp, "%d %d %d", &color, &x, &y);
@@ -996,11 +995,11 @@ bool LinkPts(const char * SrcBmpName, const char * outPtTxt, const char * outPai
 	fclose(ptFp);
 
 	FILE *pairFp = fopen(outPairsTxt, "rb");
-	int s=-1,e=-1;
+	int s = -1, e = -1;
 	while (!feof(pairFp))
 	{
 		fscanf(pairFp, "%d %d", &s, &e);
-		PtPair tmp(s,e);
+		PtPair tmp(s, e);
 		pairs->push_back(tmp);
 	}
 	fclose(pairFp);
@@ -1016,7 +1015,7 @@ bool LinkPts(const char * SrcBmpName, const char * outPtTxt, const char * outPai
 		}
 	}
 
-	for (int i = 0; i < pairs->size(); i++) 
+	for (int i = 0; i < pairs->size(); i++)
 	{
 		ddaLine(pts, NewMtxBuf, pairs->at(i).sId, pairs->at(i).eId);
 	}
@@ -1065,7 +1064,7 @@ bool LinkPts(const char * SrcBmpName, const char * outPtTxt, const char * outPai
 
 bool ddaLine(std::vector<Pt> *pts, unsigned char ** NewMtxBuf, int sId, int eId)
 {
-	int xa=-1, ya=-1, xb=-1, yb=-1;
+	int xa = -1, ya = -1, xb = -1, yb = -1;
 	for (int i = 0; i < pts->size(); i++)
 	{
 		if (pts->at(i).color == sId)
@@ -1079,11 +1078,11 @@ bool ddaLine(std::vector<Pt> *pts, unsigned char ** NewMtxBuf, int sId, int eId)
 			yb = pts->at(i).y;
 		}
 	}
-	int dx = xb - xa;                            
-	int dy = yb - ya;                             
+	int dx = xb - xa;
+	int dy = yb - ya;
 	int n;
 	float xinc, yinc, x, y;
-	if (abs(dx) > abs(dy))                         
+	if (abs(dx) > abs(dy))
 	{
 		n = abs(dx);
 	}
@@ -1091,14 +1090,14 @@ bool ddaLine(std::vector<Pt> *pts, unsigned char ** NewMtxBuf, int sId, int eId)
 	{
 		n = abs(dy);
 	}
-	xinc = (float)dx/n;         
-	yinc = (float)dy/n;         
-	x = (float) xa; y = (float) ya;
+	xinc = (float)dx / n;
+	yinc = (float)dy / n;
+	x = (float)xa; y = (float)ya;
 	NewMtxBuf[xa][ya] = 0;
-	for(int k = 1; k <= n; k++)
+	for (int k = 1; k <= n; k++)
 	{
-		x += xinc;                          
-		y += yinc;  
+		x += xinc;
+		y += yinc;
 		NewMtxBuf[(int)x][(int)y] = 0;
 	}
 	NewMtxBuf[xb][yb] = 0;

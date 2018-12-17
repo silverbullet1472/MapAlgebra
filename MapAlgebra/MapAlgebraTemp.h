@@ -57,6 +57,7 @@ public:
 	virtual unsigned GetSize() { return 37; };
 };
 
+
 class CEu5Tmp : public CTmp
 {
 private:
@@ -66,8 +67,8 @@ public:
 	{
 		for (unsigned i = 0; i<25; i++)
 		{
-			float x = GetOffX(i);
-			float y = GetOffY(i);
+			float x = (float) GetOffX(i);
+			float y = (float) GetOffY(i);
 			m_DisTmp[i] = sqrt(x*x + y*y);
 		}
 	};
